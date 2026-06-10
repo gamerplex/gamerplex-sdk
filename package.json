@@ -1,7 +1,7 @@
 {
   "name": "@gamerplex/sdk",
-  "version": "0.2.0",
-  "description": "Solana on-chain primitives for game builders. Arcade save-scores with multi-token + $GAME 20% discount (v0.2), plus Contention Markets wagering (v0.1).",
+  "version": "0.3.0",
+  "description": "Solana on-chain primitives for the Gamerplex Arcade: save-scores with multi-token payment + $GAME 20% discount + affiliate referrals.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -13,8 +13,7 @@
       "import": "./dist/arcade/index.js",
       "types": "./dist/arcade/index.d.ts"
     },
-    "./idl/gamerplex_arcade.json": "./idl/gamerplex_arcade.json",
-    "./idl/contention_markets.json": "./idl/contention_markets.json"
+    "./idl/gamerplex_arcade.json": "./idl/gamerplex_arcade.json"
   },
   "files": [
     "dist",
@@ -32,12 +31,9 @@
     "solana",
     "gaming",
     "arcade",
-    "wagering",
-    "prediction-markets",
-    "magicblock",
-    "contention",
+    "leaderboard",
     "gamerplex",
-    "flipcash"
+    "game-sdk"
   ],
   "license": "MIT",
   "dependencies": {
