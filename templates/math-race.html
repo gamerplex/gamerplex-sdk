@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Race — Gamerplex</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0d001a;color:#e8e8f0;font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:20px}
+  .header{text-align:center;margin-bottom:24px}
+  .header h1{font-size:28px;font-weight:900;font-style:italic;background:linear-gradient(135deg,#9945FF,#14F195);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .header .sub{font-size:11px;color:#6a5a80;letter-spacing:3px;margin-top:4px}
+  .card{background:#120024;border:1px solid #2a1050;border-radius:12px;padding:24px;width:100%;max-width:500px;margin-bottom:16px}
+  .card h2{font-size:13px;color:#6a5a80;text-transform:uppercase;letter-spacing:2px;margin-bottom:16px}
+  .problem{font-size:48px;font-weight:700;text-align:center;padding:24px;color:#fff;min-height:100px;display:flex;align-items:center;justify-content:center}
+  .answer-input{width:100%;background:#1a0033;border:2px solid #2a1050;color:#14F195;font-size:24px;font-weight:700;padding:16px;text-align:center;font-family:inherit;border-radius:8px;outline:none}
+  .answer-input:focus{border-color:#14F195}
+  .score-row{display:flex;justify-content:space-between;gap:16px;margin-bottom:16px}
+  .score-box{flex:1;text-align:center;padding:12px;background:#1a0033;border-radius:8px}
+  .score-box .label{font-size:9px;color:#6a5a80;text-transform:uppercase;letter-spacing:1px}
+  .score-box .val{font-size:28px;font-weight:700;margin-top:4px}
+  .p1-color{color:#448aff} .p2-color{color:#b388ff}
+  .timer{text-align:center;font-size:36px;font-weight:700;color:#ffd740;margin-bottom:16px}
+  .btn{width:100%;padding:16px;border:none;font-size:16px;font-weight:900;font-style:italic;cursor:pointer;font-family:inherit;border-radius:8px;margin-top:8px}
+  .btn-primary{background:linear-gradient(90deg,#9945FF,#14F195);color:#000}
+  .btn-outline{background:transparent;border:2px solid #14F195;color:#14F195}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .status{text-align:center;font-size:12px;color:#6a5a80;margin-top:8px}
+  .result{text-align:center;padding:32px}
+  .result h2{font-size:36px;font-weight:900;margin-bottom:8px}
+  .result .payout{font-size:24px;font-weight:700;color:#ffd740}
+  .correct{animation:flash .3s} @keyframes flash{0%{background:#14F19530}100%{background:transparent}}
+  .wrong{animation:shake .3s} @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+  .streak-indicator{font-size:11px;color:#ffd740;text-align:center;min-height:16px;margin-top:4px}
+  .progress{height:4px;background:#1a0033;border-radius:2px;margin-bottom:16px;overflow:hidden}
+  .progress-fill{height:100%;border-radius:2px;transition:width .3s}
+  .progress-p1{background:linear-gradient(90deg,#448aff,#18ffff)}
+  .progress-p2{background:linear-gradient(90deg,#b388ff,#ff80ab)}
+  .footer{font-size:9px;color:#3d2a5a;text-align:center;margin-top:16px;letter-spacing:1px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>MATH RACE</h1>
+  <div class="sub">First to 10 wins the pot &bull; Gamerplex Arena</div>
+</div>
+
+<div class="card">
+  <div class="score-row">
+    <div class="score-box"><div class="label">You</div><div class="val p1-color" id="p1Score">0</div></div>
+    <div class="score-box"><div class="label">Opponent</div><div class="val p2-color" id="p2Score">0</div></div>
+  </div>
+  <div class="progress"><div class="progress-fill progress-p1" id="p1Progress" style="width:0%"></div></div>
+  <div class="progress"><div class="progress-fill progress-p2" id="p2Progress" style="width:0%"></div></div>
+</div>
+
+<div class="card" id="gameCard">
+  <div class="timer" id="timer">60</div>
+  <div class="problem" id="problem">Press Start</div>
+  <input class="answer-input" id="answer" type="number" placeholder="?" disabled autocomplete="off">
+  <div class="streak-indicator" id="streak"></div>
+</div>
+
+<div class="card" id="resultCard" style="display:none">
+  <div class="result">
+    <h2 id="resultText" style="color:#14F195">YOU WON!</h2>
+    <div class="payout" id="resultPayout">+$9.80</div>
+    <div class="status" id="resultDetail">10-7 in 42 seconds</div>
+    <button class="btn btn-outline" style="margin-top:16px" onclick="shareResult()">Share on X</button>
+  </div>
+</div>
+
+<button class="btn btn-primary" id="startBtn" onclick="startGame()">Start Match — $5 USDC</button>
+<div class="status" id="status">Connect wallet to play</div>
+
+<div class="footer">Settled on Contention Markets (Solana) &bull; 2% protocol fee &bull; gamerplex.com</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const TARGET = 10;
+const GAME_TIME = 60;
+const STAKE = 5;
+
+let p1Score = 0, p2Score = 0, currentAnswer = 0, timeLeft = GAME_TIME;
+let gameActive = false, timer = null, streakCount = 0;
+let startTime = 0, difficulty = 1;
+
+function genProblem() {
+  let a, b, op, answer;
+  const ops = ['+', '-', '×'];
+
+  if (difficulty <= 3) {
+    a = 2 + Math.floor(Math.random() * 10);
+    b = 2 + Math.floor(Math.random() * 10);
+    op = ops[Math.floor(Math.random() * 2)]; // + or -
+  } else if (difficulty <= 6) {
+    a = 5 + Math.floor(Math.random() * 20);
+    b = 2 + Math.floor(Math.random() * 12);
+    op = ops[Math.floor(Math.random() * 3)];
+  } else {
+    a = 10 + Math.floor(Math.random() * 50);
+    b = 3 + Math.floor(Math.random() * 20);
+    op = ops[Math.floor(Math.random() * 3)];
+  }
+
+  if (op === '+') answer = a + b;
+  else if (op === '-') { if (a < b) [a, b] = [b, a]; answer = a - b; }
+  else { answer = a * b; }
+
+  $('problem').textContent = `${a} ${op} ${b}`;
+  $('problem').className = 'problem';
+  currentAnswer = answer;
+}
+
+function agentSolve() {
+  // AI opponent solves with variable speed based on difficulty
+  const baseTime = 1500 + Math.random() * 2000; // 1.5-3.5s
+  const difficultyPenalty = difficulty * 200;
+  const solveTime = baseTime + difficultyPenalty;
+
+  setTimeout(() => {
+    if (!gameActive) return;
+    if (Math.random() < 0.85) { // 85% accuracy
+      p2Score++;
+      $('p2Score').textContent = p2Score;
+      $('p2Progress').style.width = (p2Score / TARGET * 100) + '%';
+      if (p2Score >= TARGET) endGame('p2');
+    }
+  }, solveTime);
+}
+
+function checkAnswer() {
+  const val = parseInt($('answer').value);
+  if (isNaN(val)) return;
+
+  if (val === currentAnswer) {
+    p1Score++;
+    streakCount++;
+    $('p1Score').textContent = p1Score;
+    $('p1Progress').style.width = (p1Score / TARGET * 100) + '%';
+    $('problem').className = 'problem correct';
+    $('streak').textContent = streakCount >= 3 ? `${streakCount} streak 🔥` : '';
+    difficulty = Math.min(10, Math.floor(p1Score / 2) + 1);
+
+    if (p1Score >= TARGET) { endGame('p1'); return; }
+    $('answer').value = '';
+    genProblem();
+    agentSolve();
+  } else {
+    streakCount = 0;
+    $('streak').textContent = '';
+    $('problem').className = 'problem wrong';
+    $('answer').value = '';
+  }
+}
+
+function startGame() {
+  p1Score = 0; p2Score = 0; timeLeft = GAME_TIME; streakCount = 0; difficulty = 1;
+  $('p1Score').textContent = '0';
+  $('p2Score').textContent = '0';
+  $('p1Progress').style.width = '0%';
+  $('p2Progress').style.width = '0%';
+  $('streak').textContent = '';
+  $('resultCard').style.display = 'none';
+  $('gameCard').style.display = 'block';
+  $('startBtn').disabled = true;
+  $('answer').disabled = false;
+  $('answer').value = '';
+  $('answer').focus();
+  $('status').textContent = 'Match in progress...';
+  gameActive = true;
+  startTime = Date.now();
+
+  genProblem();
+  agentSolve();
+
+  timer = setInterval(() => {
+    timeLeft--;
+    $('timer').textContent = timeLeft;
+    if (timeLeft <= 10) $('timer').style.color = '#ff1744';
+    if (timeLeft <= 0) endGame(p1Score > p2Score ? 'p1' : p2Score > p1Score ? 'p2' : 'draw');
+  }, 1000);
+}
+
+function endGame(winner) {
+  gameActive = false;
+  clearInterval(timer);
+  $('answer').disabled = true;
+  $('gameCard').style.display = 'none';
+  $('resultCard').style.display = 'block';
+
+  const elapsed = Math.round((Date.now() - startTime) / 1000);
+  const pot = STAKE * 2;
+  const fee = pot * 0.02;
+  const payout = pot - fee;
+
+  if (winner === 'p1') {
+    $('resultText').textContent = 'YOU WON!';
+    $('resultText').style.color = '#14F195';
+    $('resultPayout').textContent = `+$${payout.toFixed(2)}`;
+    $('resultPayout').style.color = '#ffd740';
+  } else if (winner === 'p2') {
+    $('resultText').textContent = 'YOU LOST';
+    $('resultText').style.color = '#ff1744';
+    $('resultPayout').textContent = `-$${STAKE.toFixed(2)}`;
+    $('resultPayout').style.color = '#ff1744';
+  } else {
+    $('resultText').textContent = 'DRAW';
+    $('resultText').style.color = '#6a5a80';
+    $('resultPayout').textContent = 'Refunded';
+    $('resultPayout').style.color = '#6a5a80';
+  }
+
+  $('resultDetail').textContent = `${p1Score}-${p2Score} in ${elapsed}s`;
+  $('startBtn').disabled = false;
+  $('startBtn').textContent = 'Play Again — $5 USDC';
+  $('status').textContent = `Match settled on Contention Markets`;
+}
+
+function shareResult() {
+  const won = $('resultText').textContent === 'YOU WON!';
+  const text = encodeURIComponent(
+    `${won ? 'Won' : 'Lost'} a Math Race on Gamerplex Arena! ${$('resultPayout').textContent}\n\nScore: ${p1Score}-${p2Score} 🧮\nSettled on Contention Markets (Solana) 🦞\n\ngamerplex.com`
+  );
+  window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
+}
+
+// Enter key submits answer
+$('answer').addEventListener('keydown', e => { if (e.key === 'Enter') checkAnswer(); });
+</script>
+</body>
+</html>

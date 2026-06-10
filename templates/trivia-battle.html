@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trivia Battle — Gamerplex</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0d001a;color:#e8e8f0;font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:20px}
+  .header{text-align:center;margin-bottom:24px}
+  .header h1{font-size:28px;font-weight:900;font-style:italic;background:linear-gradient(135deg,#9945FF,#14F195);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .header .sub{font-size:11px;color:#6a5a80;letter-spacing:3px;margin-top:4px}
+  .card{background:#120024;border:1px solid #2a1050;border-radius:12px;padding:24px;width:100%;max-width:500px;margin-bottom:16px}
+  .score-row{display:flex;justify-content:space-between;gap:16px;margin-bottom:16px}
+  .score-box{flex:1;text-align:center;padding:12px;background:#1a0033;border-radius:8px}
+  .score-box .label{font-size:9px;color:#6a5a80;text-transform:uppercase;letter-spacing:1px}
+  .score-box .val{font-size:28px;font-weight:700;margin-top:4px}
+  .p1-color{color:#448aff} .p2-color{color:#b388ff}
+  .timer{text-align:center;font-size:36px;font-weight:700;color:#ffd740;margin-bottom:16px}
+  .question{font-size:18px;font-weight:700;text-align:center;padding:16px;color:#fff;min-height:80px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;line-height:1.4}
+  .choices{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .choice{padding:16px;background:#1a0033;border:2px solid #2a1050;border-radius:8px;color:#e8e8f0;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:center;transition:all .15s}
+  .choice:hover{border-color:#9945FF;background:#22003d}
+  .choice.correct{border-color:#14F195;background:#14F19520;color:#14F195}
+  .choice.wrong{border-color:#ff1744;background:#ff174420;color:#ff1744}
+  .choice:disabled{cursor:not-allowed;opacity:.6}
+  .round-info{text-align:center;font-size:11px;color:#6a5a80;margin-bottom:12px;letter-spacing:1px}
+  .btn{width:100%;padding:16px;border:none;font-size:16px;font-weight:900;font-style:italic;cursor:pointer;font-family:inherit;border-radius:8px;margin-top:8px}
+  .btn-primary{background:linear-gradient(90deg,#9945FF,#14F195);color:#000}
+  .btn-outline{background:transparent;border:2px solid #14F195;color:#14F195}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .result{text-align:center;padding:32px}
+  .result h2{font-size:36px;font-weight:900;margin-bottom:8px}
+  .result .payout{font-size:24px;font-weight:700}
+  .status{text-align:center;font-size:12px;color:#6a5a80;margin-top:8px}
+  .footer{font-size:9px;color:#3d2a5a;text-align:center;margin-top:16px;letter-spacing:1px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>TRIVIA BATTLE</h1>
+  <div class="sub">10 Rounds &bull; Most correct wins &bull; Gamerplex Arena</div>
+</div>
+
+<div class="card">
+  <div class="score-row">
+    <div class="score-box"><div class="label">You</div><div class="val p1-color" id="p1Score">0</div></div>
+    <div class="score-box"><div class="label">AI Agent</div><div class="val p2-color" id="p2Score">0</div></div>
+  </div>
+</div>
+
+<div class="card" id="gameCard">
+  <div class="round-info" id="roundInfo">Round 1 / 10</div>
+  <div class="timer" id="timer">10</div>
+  <div class="question" id="question">Press Start to begin</div>
+  <div class="choices" id="choices"></div>
+</div>
+
+<div class="card" id="resultCard" style="display:none">
+  <div class="result">
+    <h2 id="resultText">YOU WON!</h2>
+    <div class="payout" id="resultPayout">+$9.80</div>
+    <div class="status" id="resultDetail"></div>
+    <button class="btn btn-outline" style="margin-top:16px" onclick="shareResult()">Share on X</button>
+  </div>
+</div>
+
+<button class="btn btn-primary" id="startBtn" onclick="startGame()">Start Match — $5 USDC</button>
+<div class="status" id="status">Connect wallet to play</div>
+<div class="footer">Settled on Contention Markets (Solana) &bull; 2% protocol fee &bull; gamerplex.com</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+const QUESTIONS = [
+  {q:"What is the largest planet in our solar system?",a:["Jupiter","Saturn","Neptune","Uranus"],c:0},
+  {q:"In what year did Bitcoin launch?",a:["2008","2009","2010","2007"],c:1},
+  {q:"What blockchain does Solana use for consensus?",a:["Proof of Work","Proof of History","Proof of Authority","Delegated PoS"],c:1},
+  {q:"How many SOL does a Solana validator need to stake?",a:["1 SOL","32 SOL","No minimum","100 SOL"],c:2},
+  {q:"What programming language are Solana smart contracts written in?",a:["Solidity","JavaScript","Rust","Python"],c:2},
+  {q:"What is the speed of light in km/s (approx)?",a:["300,000","150,000","500,000","100,000"],c:0},
+  {q:"Which company created the Phantom wallet?",a:["Phantom Labs","Solana Labs","Coinbase","Alchemy"],c:0},
+  {q:"What does NFT stand for?",a:["New Finance Token","Non-Fungible Token","National Fund Transfer","Net File Token"],c:1},
+  {q:"What is Ethereum's native token?",a:["ETC","ETH","WETH","ETN"],c:1},
+  {q:"How many bits in a byte?",a:["4","8","16","32"],c:1},
+  {q:"What does DeFi stand for?",a:["Defined Finance","Decentralized Finance","Digital Finance","Default Finance"],c:1},
+  {q:"Which planet is known as the Red Planet?",a:["Venus","Mars","Jupiter","Mercury"],c:1},
+  {q:"What year was Ethereum launched?",a:["2013","2014","2015","2016"],c:2},
+  {q:"What is the maximum supply of Bitcoin?",a:["100 million","21 million","18 million","10 million"],c:1},
+  {q:"What does RPC stand for in blockchain?",a:["Remote Procedure Call","Real Protocol Chain","Rapid Public Channel","Random Packet Code"],c:0},
+];
+
+const TOTAL_ROUNDS = 10;
+const ROUND_TIME = 10;
+let round = 0, p1Score = 0, p2Score = 0, roundTimer = null, answered = false;
+let gameQuestions = [];
+
+function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+
+function showRound() {
+  if (round >= TOTAL_ROUNDS) { endGame(); return; }
+
+  const q = gameQuestions[round];
+  answered = false;
+  let timeLeft = ROUND_TIME;
+
+  $('roundInfo').textContent = `Round ${round + 1} / ${TOTAL_ROUNDS}`;
+  $('timer').textContent = timeLeft;
+  $('timer').style.color = '#ffd740';
+  $('question').textContent = q.q;
+
+  const choicesHtml = q.a.map((a, i) =>
+    `<button class="choice" onclick="answer(${i})" id="c${i}">${a}</button>`
+  ).join('');
+  $('choices').innerHTML = choicesHtml;
+
+  // AI answers after 2-5 seconds with 75% accuracy
+  const aiDelay = 2000 + Math.random() * 3000;
+  setTimeout(() => {
+    if (answered || round >= TOTAL_ROUNDS) return;
+    if (Math.random() < 0.75) p2Score++;
+    $('p2Score').textContent = p2Score;
+  }, aiDelay);
+
+  roundTimer = setInterval(() => {
+    timeLeft--;
+    $('timer').textContent = timeLeft;
+    if (timeLeft <= 3) $('timer').style.color = '#ff1744';
+    if (timeLeft <= 0) {
+      clearInterval(roundTimer);
+      if (!answered) { revealAnswer(-1); }
+    }
+  }, 1000);
+}
+
+function answer(idx) {
+  if (answered) return;
+  answered = true;
+  clearInterval(roundTimer);
+
+  const q = gameQuestions[round];
+  const buttons = document.querySelectorAll('.choice');
+  buttons.forEach(b => b.disabled = true);
+
+  $(`c${q.c}`).classList.add('correct');
+
+  if (idx === q.c) {
+    p1Score++;
+    $('p1Score').textContent = p1Score;
+  } else {
+    $(`c${idx}`).classList.add('wrong');
+  }
+
+  setTimeout(() => { round++; showRound(); }, 1200);
+}
+
+function revealAnswer(idx) {
+  answered = true;
+  const q = gameQuestions[round];
+  $(`c${q.c}`).classList.add('correct');
+  document.querySelectorAll('.choice').forEach(b => b.disabled = true);
+  setTimeout(() => { round++; showRound(); }, 1200);
+}
+
+function startGame() {
+  p1Score = 0; p2Score = 0; round = 0;
+  $('p1Score').textContent = '0';
+  $('p2Score').textContent = '0';
+  $('resultCard').style.display = 'none';
+  $('gameCard').style.display = 'block';
+  $('startBtn').disabled = true;
+  $('status').textContent = 'Match in progress...';
+  gameQuestions = shuffle(QUESTIONS).slice(0, TOTAL_ROUNDS);
+  showRound();
+}
+
+function endGame() {
+  $('gameCard').style.display = 'none';
+  $('resultCard').style.display = 'block';
+  $('startBtn').disabled = false;
+  $('startBtn').textContent = 'Play Again — $5 USDC';
+
+  const pot = 10, fee = 0.2, payout = 9.8;
+  const winner = p1Score > p2Score ? 'p1' : p2Score > p1Score ? 'p2' : 'draw';
+
+  if (winner === 'p1') {
+    $('resultText').textContent = 'YOU WON!';
+    $('resultText').style.color = '#14F195';
+    $('resultPayout').textContent = `+$${payout.toFixed(2)}`;
+    $('resultPayout').style.color = '#ffd740';
+  } else if (winner === 'p2') {
+    $('resultText').textContent = 'YOU LOST';
+    $('resultText').style.color = '#ff1744';
+    $('resultPayout').textContent = `-$5.00`;
+    $('resultPayout').style.color = '#ff1744';
+  } else {
+    $('resultText').textContent = 'DRAW';
+    $('resultText').style.color = '#6a5a80';
+    $('resultPayout').textContent = 'Refunded';
+    $('resultPayout').style.color = '#6a5a80';
+  }
+  $('resultDetail').textContent = `Final: ${p1Score}-${p2Score}`;
+  $('status').textContent = 'Match settled on Contention Markets';
+}
+
+function shareResult() {
+  const won = $('resultText').textContent === 'YOU WON!';
+  const text = encodeURIComponent(
+    `${won ? 'Won' : 'Lost'} a Trivia Battle on Gamerplex Arena! ${$('resultPayout').textContent}\n\nScore: ${p1Score}-${p2Score} 🧠\nSettled on Contention Markets (Solana) 🦞\n\ngamerplex.com`
+  );
+  window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
+}
+</script>
+</body>
+</html>

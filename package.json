@@ -1,0 +1,55 @@
+{
+  "name": "@gamerplex/sdk",
+  "version": "0.2.0",
+  "description": "Solana on-chain primitives for game builders. Arcade save-scores with multi-token + $GAME 20% discount (v0.2), plus Contention Markets wagering (v0.1).",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./arcade": {
+      "import": "./dist/arcade/index.js",
+      "types": "./dist/arcade/index.d.ts"
+    },
+    "./idl/gamerplex_arcade.json": "./idl/gamerplex_arcade.json",
+    "./idl/contention_markets.json": "./idl/contention_markets.json"
+  },
+  "files": [
+    "dist",
+    "idl"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "sync-idl": "cp ../gamerplex-arcade/target/idl/gamerplex_arcade.json idl/ && echo 'IDL synced from gamerplex-arcade'",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "keywords": [
+    "solana",
+    "gaming",
+    "arcade",
+    "wagering",
+    "prediction-markets",
+    "magicblock",
+    "contention",
+    "gamerplex",
+    "flipcash"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@coral-xyz/anchor": ">=0.30.0",
+    "@solana/spl-token": "^0.4.12",
+    "@solana/web3.js": ">=1.90.0",
+    "buffer": "^6.0.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  },
+  "peerDependencies": {
+    "@coral-xyz/anchor": ">=0.30.0",
+    "@solana/web3.js": ">=1.90.0"
+  }
+}

@@ -1,0 +1,8 @@
+
+# ── Internal engineering docs — never push to public ────────────
+ENGINEERING/
+ENGINEERING_*/
+**/ENGINEERING/
+**/ENGINEERING_*/
+docs-internal/
+
