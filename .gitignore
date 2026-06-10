@@ -1,8 +1,25 @@
+# Dependencies + build output
+node_modules/
+dist/
+*.tsbuildinfo
 
-# ── Internal engineering docs — never push to public ────────────
+# Env + secrets — must never be committed
+.env
+.env.*
+*.key
+*.pem
+keypair*.json
+**/keys/
+**/secrets/
+
+# OS / editor
+.DS_Store
+*.log
+.vscode/
+.idea/
+
+# Internal engineering docs — never public
 ENGINEERING/
 ENGINEERING_*/
 **/ENGINEERING/
-**/ENGINEERING_*/
 docs-internal/
-
