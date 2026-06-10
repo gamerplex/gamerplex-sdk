@@ -25,6 +25,7 @@
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
     "sync-idl": "cp ../gamerplex-arcade/target/idl/gamerplex_arcade.json idl/ && echo 'IDL synced from gamerplex-arcade'",
+    "prepare": "tsc",
     "prepublishOnly": "npm run clean && npm run build"
   },
   "keywords": [
