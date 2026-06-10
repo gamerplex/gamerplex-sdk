@@ -36,3 +36,18 @@ export {
   profilePda,
   receiptPda,
 } from "./pdas";
+
+export {
+  RATE_SCALE_FACTOR,
+  RATE_OVERPAY_BPS,
+  fetchExchangeRates,
+  convertUsdToRaw,
+  applyOverpay,
+  quotePaymentAmount,
+  getTreasuryWallet,
+} from "./quote";
+export type { ExchangeRatesSnapshot, PaymentQuote } from "./quote";
+
+export { fetchProfile } from "./profile";
+
+export { sha256 } from "./util";
