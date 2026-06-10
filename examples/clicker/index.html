@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Arcade Clicker — @gamerplex/sdk demo</title>
+    <style>
+      :root {
+        --bg: #0a0a14;
+        --surface: #14141f;
+        --border: #2a2a3a;
+        --text: #e0e0e8;
+        --dim: #6a6a80;
+        --green: #14F195;
+        --purple: #9945FF;
+        --cyan: #00f2ff;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", monospace; }
+      body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 32px 16px; }
+      #root { width: 100%; max-width: 480px; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

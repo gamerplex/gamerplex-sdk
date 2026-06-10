@@ -1,0 +1,32 @@
+{
+  "name": "gamerplex-sdk-clicker-example",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Smallest possible arcade game using @gamerplex/sdk — clicks are the score.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.31.1",
+    "@gamerplex/sdk": "github:gamerplex/gamerplex-sdk#main",
+    "@solana/spl-token": "^0.4.12",
+    "@solana/wallet-adapter-base": "^0.9.27",
+    "@solana/wallet-adapter-phantom": "^0.9.28",
+    "@solana/wallet-adapter-react": "^0.15.39",
+    "@solana/wallet-adapter-react-ui": "^0.9.39",
+    "@solana/web3.js": "^1.98.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "@vitejs/plugin-react": "^4.3.0",
+    "typescript": "^5.7.0",
+    "vite": "^5.4.0",
+    "vite-plugin-node-polyfills": "^0.22.0"
+  }
+}
