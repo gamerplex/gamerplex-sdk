@@ -52,4 +52,7 @@ export { fetchProfile } from "./profile";
 
 export { sha256 } from "./util";
 
+export { submitReplay, submitReplayFireAndForget } from "./replay";
+export type { SubmitReplayResult } from "./replay";
+
 export { SDK_VERSION } from "../version";

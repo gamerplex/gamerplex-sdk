@@ -89,43 +89,7 @@ export interface SaveScoreInput {
   resolverUrl?: string;
 }
 
-export interface SubmitReplayResult {
-  ok: boolean;
-  verified: boolean;
-  verdict?: unknown;
-  gpx5rSig?: string;
-  error?: string;
-}
-
-async function submitReplayCall(
-  resolverUrl: string,
-  scoreSig: string,
-  moveLog: Uint8Array,
-): Promise<SubmitReplayResult | null> {
-  try {
-    const moveLogB64 = bytesToBase64(moveLog);
-    const r = await fetch(`${resolverUrl}/arcade/submit-replay/${encodeURIComponent(scoreSig)}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ moveLog: moveLogB64 }),
-    });
-    if (!r.ok) return { ok: false, verified: false, error: `${r.status}` };
-    return await r.json();
-  } catch (e: any) {
-    return { ok: false, verified: false, error: e?.message ?? String(e) };
-  }
-}
-
-function submitReplayFireAndForget(resolverUrl: string, scoreSig: string, moveLog: Uint8Array): Promise<void> {
-  return submitReplayCall(resolverUrl, scoreSig, moveLog).then(() => undefined);
-}
-
-function bytesToBase64(b: Uint8Array): string {
-  if (typeof Buffer !== "undefined") return Buffer.from(b).toString("base64");
-  let s = "";
-  for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
-  return btoa(s);
-}
+import { submitReplay, type SubmitReplayResult } from "./replay";
 
 export class ArcadeClient {
   readonly connection: Connection;
@@ -249,8 +213,7 @@ export class ArcadeClient {
     const sig = await this.sendTx(tx);
 
     if (input.moveLog && input.moveLog.length > 0 && input.resolverUrl !== "") {
-      const url = input.resolverUrl ?? "https://resolver.gamerplex.com";
-      submitReplayFireAndForget(url, sig, input.moveLog).catch(() => {});
+      submitReplay(sig, input.moveLog, input.resolverUrl).catch(() => {});
     }
 
     return sig;
@@ -260,9 +223,8 @@ export class ArcadeClient {
     scoreSig: string;
     moveLog: Uint8Array;
     resolverUrl?: string;
-  }): Promise<SubmitReplayResult | null> {
-    const url = input.resolverUrl ?? "https://resolver.gamerplex.com";
-    return submitReplayCall(url, input.scoreSig, input.moveLog);
+  }): Promise<SubmitReplayResult> {
+    return submitReplay(input.scoreSig, input.moveLog, input.resolverUrl);
   }
 
   async buildOpenProfileIx(player: PublicKey, referrer: PublicKey): Promise<TransactionInstruction> {
