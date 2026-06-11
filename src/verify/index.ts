@@ -1,5 +1,6 @@
 import { blockwordsValidator } from "./blockwords/validator";
 import { chessValidator } from "./chess/validator";
+import { snakeValidator } from "./snake/validator";
 import type { ReplayInput, Validator, Verdict } from "./types";
 
 export type { ReplayInput, Validator, Verdict };
@@ -9,6 +10,7 @@ const VALIDATORS: Record<string, Validator | undefined> = {
   blockwords: blockwordsValidator,
   "chess-puzzles": chessValidator,
   "magic-chess": chessValidator,
+  "cyber-snake": snakeValidator,
 };
 
 export async function verifyReplay(input: ReplayInput): Promise<Verdict> {
