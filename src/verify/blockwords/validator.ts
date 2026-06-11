@@ -13,11 +13,45 @@
 //     separate layer — focus is anti-cheat, not anti-automation).
 //   - Whether the guesses use only the on-screen keyboard (we don't care).
 
-import { answerForSeed, computeScore, decodeGuessLog, isWinningGuess, MAX_GUESSES, RUN_DURATION_SEC, WORD_LENGTH } from "./engine";
+import { answerForSeed, computeScore, decodeGuessLogFull, isWinningGuess, MAX_GUESSES, RUN_DURATION_SEC, WORD_LENGTH } from "./engine";
 import type { ReplayInput, Validator, Verdict } from "../types";
 import { verdictFail, verdictOk } from "../types";
 
 const DURATION_GRACE_SEC = 5; // clock skew between client and chain block-time
+const MIN_GUESS_DELTA_SEC = 1; // humans need ≥1s to type a 5-letter word
+const DURATION_DEVIATION_TOL_SEC = 10;
+
+function median(xs: number[]): number {
+  if (xs.length === 0) return 0;
+  const sorted = [...xs].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+}
+
+function statisticalTimingCheck(deltas: number[], claimedDuration: number): string[] {
+  const reasons: string[] = [];
+  const sum = deltas.reduce((a, b) => a + b, 0);
+  // Sum of deltas should ≈ claimed duration (within tolerance).
+  if (Math.abs(sum - claimedDuration) > DURATION_DEVIATION_TOL_SEC) {
+    reasons.push(`sum(deltas)=${sum}s diverges from claimed duration ${claimedDuration}s by >${DURATION_DEVIATION_TOL_SEC}s`);
+  }
+  // Sub-human typing speed.
+  for (let i = 0; i < deltas.length; i++) {
+    if (deltas[i] < MIN_GUESS_DELTA_SEC) {
+      reasons.push(`guess[${i}] delta ${deltas[i]}s below ${MIN_GUESS_DELTA_SEC}s typing floor`);
+    }
+  }
+  // Uniform timing = scripted.
+  if (deltas.length >= 3 && deltas.every(d => d === deltas[0])) {
+    reasons.push(`all ${deltas.length} guess deltas identical (${deltas[0]}s) — scripted pattern`);
+  }
+  // Median sanity.
+  const med = median(deltas);
+  if (med < MIN_GUESS_DELTA_SEC) {
+    reasons.push(`median guess delta ${med}s below ${MIN_GUESS_DELTA_SEC}s minimum`);
+  }
+  return reasons;
+}
 
 export const blockwordsValidator: Validator = {
   async validate(input: ReplayInput): Promise<Verdict> {
@@ -28,10 +62,15 @@ export const blockwordsValidator: Validator = {
       reasons.push(`session_seed must be 32 bytes (got ${input.sessionSeed.length})`);
     }
 
-    // 2. Decode the guess log
+    // 2. Decode the guess log (handles v1 = 5 bytes/guess and v2 = 6 bytes/guess)
     let guesses: string[] = [];
+    let deltasSec: number[] = [];
+    let logVersion: 1 | 2 = 1;
     try {
-      guesses = decodeGuessLog(input.moveLog);
+      const decoded = decodeGuessLogFull(input.moveLog);
+      guesses = decoded.guesses;
+      deltasSec = decoded.deltasSec;
+      logVersion = decoded.version;
     } catch (e: any) {
       reasons.push(`failed to decode guess log: ${e?.message ?? e}`);
     }
@@ -94,11 +133,20 @@ export const blockwordsValidator: Validator = {
       };
     }
 
+    // 7. Statistical timing check (v2 only — v1 logs have no delta data)
+    if (logVersion === 2) {
+      const timingReasons = statisticalTimingCheck(deltasSec, input.durationSec);
+      if (timingReasons.length > 0) {
+        return verdictFail(input.claimedScore, ...timingReasons);
+      }
+    }
+
     return verdictOk(input.claimedScore, computed, {
       answer,
       solved,
       guessesUsed: guesses.length,
       lastGuess,
+      moveLogVersion: logVersion,
     });
   },
 };

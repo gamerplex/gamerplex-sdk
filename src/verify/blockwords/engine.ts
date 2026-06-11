@@ -77,8 +77,12 @@ export function isWinningGuess(answer: string, guess: string): boolean {
   return answer.toUpperCase() === guess.toUpperCase();
 }
 
+// v1 = 5 bytes per guess (just letters). v2 = 6 bytes per guess (letters + 1-byte delta_sec).
+const V1_BYTES_PER_GUESS = WORD_LENGTH;
+const V2_BYTES_PER_GUESS = WORD_LENGTH + 1;
+
 export function encodeGuessLog(guesses: string[]): Uint8Array {
-  const buf = new Uint8Array(guesses.length * WORD_LENGTH);
+  const buf = new Uint8Array(guesses.length * V1_BYTES_PER_GUESS);
   for (let i = 0; i < guesses.length; i++) {
     const g = guesses[i].toUpperCase();
     if (g.length !== WORD_LENGTH) {
@@ -92,18 +96,79 @@ export function encodeGuessLog(guesses: string[]): Uint8Array {
   return buf;
 }
 
+/** v2 guess log: each guess carries deltaSec (u8 = max 255s) since previous guess.
+ *  deltas[0] is time from game start to first guess. */
+export function encodeGuessLogV2(guesses: string[], deltas: number[]): Uint8Array {
+  if (deltas.length !== guesses.length) {
+    throw new Error(`encodeGuessLogV2: deltas length ${deltas.length} != guesses length ${guesses.length}`);
+  }
+  const buf = new Uint8Array(guesses.length * V2_BYTES_PER_GUESS);
+  for (let i = 0; i < guesses.length; i++) {
+    const g = guesses[i].toUpperCase();
+    if (g.length !== WORD_LENGTH) {
+      throw new Error(`encodeGuessLogV2: guess[${i}] must be ${WORD_LENGTH} letters`);
+    }
+    for (let j = 0; j < WORD_LENGTH; j++) {
+      const code = g.charCodeAt(j);
+      buf[i * V2_BYTES_PER_GUESS + j] = code >= 65 && code <= 90 ? code : 65;
+    }
+    buf[i * V2_BYTES_PER_GUESS + WORD_LENGTH] = Math.min(255, Math.max(0, Math.floor(deltas[i])));
+  }
+  return buf;
+}
+
+export interface DecodedGuesses {
+  guesses: string[];
+  /** Per-guess deltaSec. All NaN for v1 logs (no delta info). */
+  deltasSec: number[];
+  version: 1 | 2;
+}
+
+/** Decode handles both v1 (5 bytes/guess) and v2 (6 bytes/guess).
+ *  Backwards-compat shim returning just the guesses (old API). */
 export function decodeGuessLog(buf: Uint8Array): string[] {
-  const n = Math.floor(buf.length / WORD_LENGTH);
-  const out: string[] = [];
+  return decodeGuessLogFull(buf).guesses;
+}
+
+/** Full decode returning version + per-guess delta info. */
+export function decodeGuessLogFull(buf: Uint8Array): DecodedGuesses {
+  const okV1 = buf.length % V1_BYTES_PER_GUESS === 0;
+  const okV2 = buf.length % V2_BYTES_PER_GUESS === 0;
+  // Prefer v2 when it's the unique fit (mod 6 but not mod 5).
+  if (okV2 && !okV1) return decodeV2(buf);
+  if (okV1) return decodeV1(buf);
+  if (okV2) return decodeV2(buf);
+  throw new Error(`guess log length ${buf.length} doesn't match v1 (mod 5) or v2 (mod 6)`);
+}
+
+function decodeV1(buf: Uint8Array): DecodedGuesses {
+  const n = Math.floor(buf.length / V1_BYTES_PER_GUESS);
+  const guesses: string[] = [];
   for (let i = 0; i < n; i++) {
     let s = "";
     for (let j = 0; j < WORD_LENGTH; j++) {
-      const code = buf[i * WORD_LENGTH + j];
+      const code = buf[i * V1_BYTES_PER_GUESS + j];
       s += code >= 65 && code <= 90 ? String.fromCharCode(code) : "A";
     }
-    out.push(s);
+    guesses.push(s);
   }
-  return out;
+  return { guesses, deltasSec: guesses.map(() => NaN), version: 1 };
+}
+
+function decodeV2(buf: Uint8Array): DecodedGuesses {
+  const n = Math.floor(buf.length / V2_BYTES_PER_GUESS);
+  const guesses: string[] = [];
+  const deltasSec: number[] = [];
+  for (let i = 0; i < n; i++) {
+    let s = "";
+    for (let j = 0; j < WORD_LENGTH; j++) {
+      const code = buf[i * V2_BYTES_PER_GUESS + j];
+      s += code >= 65 && code <= 90 ? String.fromCharCode(code) : "A";
+    }
+    guesses.push(s);
+    deltasSec.push(buf[i * V2_BYTES_PER_GUESS + WORD_LENGTH]);
+  }
+  return { guesses, deltasSec, version: 2 };
 }
 
 export function computeScore(
