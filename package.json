@@ -1,7 +1,7 @@
 {
   "name": "@gamerplex/sdk",
-  "version": "0.3.0",
-  "description": "Solana on-chain primitives for the Gamerplex Arcade: save-scores with multi-token payment + $GAME 20% discount + affiliate referrals.",
+  "version": "0.4.0",
+  "description": "Solana on-chain primitives for the Gamerplex Arcade: save-scores with multi-token payment + $GAME 20% discount + affiliate referrals + replay verification.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -12,6 +12,10 @@
     "./arcade": {
       "import": "./dist/arcade/index.js",
       "types": "./dist/arcade/index.d.ts"
+    },
+    "./verify": {
+      "import": "./dist/verify/index.js",
+      "types": "./dist/verify/index.d.ts"
     },
     "./idl/gamerplex_arcade.json": "./idl/gamerplex_arcade.json"
   },
