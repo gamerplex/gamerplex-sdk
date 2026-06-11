@@ -5,7 +5,7 @@ import type { ReplayInput, Validator, Verdict } from "../types";
 import { verdictFail, verdictOk } from "../types";
 
 const DEFAULT_BOT_ELO = 1500;
-const DEFAULT_MOVE_TIME = 5;
+const DEFAULT_TURN_TIME = 5;
 const MAX_BOT_ELO = 2400;
 const MIN_DELTA_MS = 200;
 const MIN_MEDIAN_DELTA_SEC = 0.5;
@@ -13,21 +13,21 @@ const DURATION_DEVIATION_TOL_SEC = 10;
 
 interface VariantParsed {
   botElo: number | null;
-  moveTimeSec: number | null;
+  turnTimeSec: number | null;
 }
 
 function parseVariant(variant: string): VariantParsed {
-  // Format: "<botId>|<moveTimeSec>" e.g. "zero|5". Older saves: "default".
+  // Format: "<botId>|<turnTimeSec>" e.g. "zero|5". Older saves: "default".
   const parts = variant.split("|");
-  if (parts.length < 2) return { botElo: null, moveTimeSec: null };
+  if (parts.length < 2) return { botElo: null, turnTimeSec: null };
   const botId = parts[0].toLowerCase();
-  const moveTime = parseInt(parts[1], 10);
+  const turnTime = parseInt(parts[1], 10);
   const ELO_BY_ID: Record<string, number> = {
     molty: 600, coral: 900, shadow: 1200, neon: 1600, quantum: 2000, zero: 2400,
   };
   const botElo = ELO_BY_ID[botId] ?? null;
-  const validTimer = TIMER_PRESETS.find(p => p.sec === moveTime);
-  return { botElo, moveTimeSec: validTimer ? moveTime : null };
+  const validTimer = TIMER_PRESETS.find(p => p.sec === turnTime);
+  return { botElo, turnTimeSec: validTimer ? turnTime : null };
 }
 
 function median(xs: number[]): number {
@@ -138,11 +138,11 @@ export const chessValidator: Validator = {
     // 4. Recompute score
     const variant = parseVariant(input.variant);
     const botElo = variant.botElo ?? DEFAULT_BOT_ELO;
-    const moveTime = variant.moveTimeSec ?? DEFAULT_MOVE_TIME;
-    const computed = computeScore(botElo, won, moves.length, input.durationSec, moveTime);
+    const turnTime = variant.turnTimeSec ?? DEFAULT_TURN_TIME;
+    const computed = computeScore(botElo, won, moves.length, input.durationSec, turnTime);
 
     // If variant didn't tell us the bot, fall back to UPPER-BOUND check.
-    if (variant.botElo == null || variant.moveTimeSec == null) {
+    if (variant.botElo == null || variant.turnTimeSec == null) {
       const maxPossible = computeScore(MAX_BOT_ELO, true, 1, 1, 3);
       if (input.claimedScore > maxPossible) {
         return verdictFail(
@@ -156,7 +156,7 @@ export const chessValidator: Validator = {
       return {
         ...verdictFail(
           input.claimedScore,
-          `score mismatch: claimed=${input.claimedScore} computed=${computed} (bot_elo=${botElo}, won=${won}, dur=${input.durationSec}s, timer=${moveTime}s)`,
+          `score mismatch: claimed=${input.claimedScore} computed=${computed} (bot_elo=${botElo}, won=${won}, dur=${input.durationSec}s, timer=${turnTime}s)`,
         ),
         computedScore: computed,
       };
@@ -182,7 +182,7 @@ export const chessValidator: Validator = {
       stalemate: chess.isStalemate(),
       moveLogVersion: version,
       botElo,
-      moveTimeSec: moveTime,
+      turnTimeSec: turnTime,
       fen: chess.fen(),
     });
   },
