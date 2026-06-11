@@ -37,6 +37,7 @@ import {
   type ArcadeNetwork,
   type PaymentTokenDef,
 } from "./tokens";
+import { SDK_VERSION } from "../version";
 
 const SPL_MEMO_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
 const RATE_SCALE_FACTOR = 1_000_000_000_000n;
@@ -184,6 +185,13 @@ export class ArcadeClient {
       gameId: input.gameId,
       referrer: input.referrer,
     }));
+    // Compose meta: always prepend sdk=X.Y.Z, then user-supplied content.
+    // Convention: semicolon-separated key=value pairs. Resolver parses
+    // `sdk=...` out for the leaderboard's per-row badge / forensics filter.
+    const userMeta = (input.meta ?? "").trim();
+    const composedMeta = userMeta
+      ? `sdk=${SDK_VERSION};${userMeta}`
+      : `sdk=${SDK_VERSION}`;
     tx.add(await this.buildSubmitScoreIx({
       player,
       gameId: input.gameId,
@@ -194,7 +202,7 @@ export class ArcadeClient {
       sessionSeed: input.sessionSeed,
       durationSec: input.durationSec ?? 0,
       moveHash: input.moveHash ?? new Uint8Array(32),
-      meta: input.meta ?? "",
+      meta: composedMeta,
     }));
 
     // 4. Sign + send

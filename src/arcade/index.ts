@@ -51,3 +51,5 @@ export type { ExchangeRatesSnapshot, PaymentQuote } from "./quote";
 export { fetchProfile } from "./profile";
 
 export { sha256 } from "./util";
+
+export { SDK_VERSION } from "../version";
