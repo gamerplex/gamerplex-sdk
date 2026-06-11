@@ -82,6 +82,49 @@ export interface SaveScoreInput {
   externalRef?: string;
   /** Override category. Default CATEGORY.SCORE_COMMIT. */
   category?: number;
+  /** Raw move-log bytes (per-game encoding). When present, sent fire-and-forget
+   *  to the resolver after save confirms so the validator can verify the run. */
+  moveLog?: Uint8Array;
+  /** Override resolver base URL. Set to "" to disable auto submit-replay. */
+  resolverUrl?: string;
+}
+
+export interface SubmitReplayResult {
+  ok: boolean;
+  verified: boolean;
+  verdict?: unknown;
+  gpx5rSig?: string;
+  error?: string;
+}
+
+async function submitReplayCall(
+  resolverUrl: string,
+  scoreSig: string,
+  moveLog: Uint8Array,
+): Promise<SubmitReplayResult | null> {
+  try {
+    const moveLogB64 = bytesToBase64(moveLog);
+    const r = await fetch(`${resolverUrl}/arcade/submit-replay/${encodeURIComponent(scoreSig)}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ moveLog: moveLogB64 }),
+    });
+    if (!r.ok) return { ok: false, verified: false, error: `${r.status}` };
+    return await r.json();
+  } catch (e: any) {
+    return { ok: false, verified: false, error: e?.message ?? String(e) };
+  }
+}
+
+function submitReplayFireAndForget(resolverUrl: string, scoreSig: string, moveLog: Uint8Array): Promise<void> {
+  return submitReplayCall(resolverUrl, scoreSig, moveLog).then(() => undefined);
+}
+
+function bytesToBase64(b: Uint8Array): string {
+  if (typeof Buffer !== "undefined") return Buffer.from(b).toString("base64");
+  let s = "";
+  for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
+  return btoa(s);
 }
 
 export class ArcadeClient {
@@ -203,10 +246,25 @@ export class ArcadeClient {
     }));
 
     // 4. Sign + send
-    return await this.sendTx(tx);
+    const sig = await this.sendTx(tx);
+
+    if (input.moveLog && input.moveLog.length > 0 && input.resolverUrl !== "") {
+      const url = input.resolverUrl ?? "https://resolver.gamerplex.com";
+      submitReplayFireAndForget(url, sig, input.moveLog).catch(() => {});
+    }
+
+    return sig;
   }
 
-  /** Build open_player_profile ix (advanced — saveScore() does this automatically). */
+  async submitReplay(input: {
+    scoreSig: string;
+    moveLog: Uint8Array;
+    resolverUrl?: string;
+  }): Promise<SubmitReplayResult | null> {
+    const url = input.resolverUrl ?? "https://resolver.gamerplex.com";
+    return submitReplayCall(url, input.scoreSig, input.moveLog);
+  }
+
   async buildOpenProfileIx(player: PublicKey, referrer: PublicKey): Promise<TransactionInstruction> {
     const refProfile = referrer.equals(PublicKey.default) ? null : profilePda(referrer, this.programId);
     return (this.program.methods as any)
