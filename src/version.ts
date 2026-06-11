@@ -13,4 +13,4 @@
 // Future: replace with build-time injection via a tsc transformer if the
 // manual sync becomes a chore (it hasn't).
 
-export const SDK_VERSION = "0.4.3";
+export const SDK_VERSION = "0.4.4";
