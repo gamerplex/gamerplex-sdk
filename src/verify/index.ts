@@ -7,14 +7,17 @@
 // All saves get verified for free — there's no paid verification tier.
 
 import { blockwordsValidator } from "./blockwords/validator";
+import { chessValidator } from "./chess/validator";
 import type { ReplayInput, Validator, Verdict } from "./types";
 
 export type { ReplayInput, Validator, Verdict };
 export { verdictFail, verdictOk } from "./types";
 
-// Per-game registry. Future: chess, cyber-snake, flipball.
+// Per-game registry. Future: cyber-snake, flipball.
 const VALIDATORS: Record<string, Validator | undefined> = {
   blockwords: blockwordsValidator,
+  "chess-puzzles": chessValidator,
+  "magic-chess": chessValidator, // alias if slug variant lands
 };
 
 /**

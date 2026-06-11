@@ -1,6 +1,6 @@
 {
   "name": "@gamerplex/sdk",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Solana on-chain primitives for the Gamerplex Arcade: save-scores with multi-token payment + $GAME 20% discount + affiliate referrals + replay verification.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -44,7 +44,8 @@
     "@coral-xyz/anchor": ">=0.30.0",
     "@solana/spl-token": "^0.4.12",
     "@solana/web3.js": ">=1.90.0",
-    "buffer": "^6.0.3"
+    "buffer": "^6.0.3",
+    "chess.js": "^1.4.0"
   },
   "devDependencies": {
     "typescript": "^5.7.0"
