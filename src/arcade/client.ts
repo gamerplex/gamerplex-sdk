@@ -185,9 +185,6 @@ export class ArcadeClient {
       gameId: input.gameId,
       referrer: input.referrer,
     }));
-    // Compose meta: always prepend sdk=X.Y.Z, then user-supplied content.
-    // Convention: semicolon-separated key=value pairs. Resolver parses
-    // `sdk=...` out for the leaderboard's per-row badge / forensics filter.
     const userMeta = (input.meta ?? "").trim();
     const composedMeta = userMeta
       ? `sdk=${SDK_VERSION};${userMeta}`

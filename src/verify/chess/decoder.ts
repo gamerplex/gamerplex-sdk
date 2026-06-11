@@ -1,18 +1,7 @@
-// Decode the Magic Chess arcade move log.
-//
-// v1 format (current): 4 bytes per move — [from, to, promotion, _pad]
-// v2 format (delta-encoded): 5 bytes per move — [from, to, promotion, delta_sec, _pad]
-//
-// Detection: a v2-encoded log is signaled either by length-divisible-by-5
-// AND length-NOT-divisible-by-4 (rare collision) OR by a version-byte
-// prefix. For backward compat we just check both shapes and pick the one
-// that decodes to legal squares (0-63). Conservative.
-
 export interface DecodedMove {
-  from: number; // 0-63
-  to: number;   // 0-63
-  promotion: number; // 0 = none, 2-13 = piece code
-  /** Seconds since previous move. NaN if move log is v1 (no deltas). */
+  from: number;
+  to: number;
+  promotion: number;
   deltaSec: number;
 }
 

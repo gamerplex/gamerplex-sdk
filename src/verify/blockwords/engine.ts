@@ -96,8 +96,6 @@ export function encodeGuessLog(guesses: string[]): Uint8Array {
   return buf;
 }
 
-/** v2 guess log: each guess carries deltaSec (u8 = max 255s) since previous guess.
- *  deltas[0] is time from game start to first guess. */
 export function encodeGuessLogV2(guesses: string[], deltas: number[]): Uint8Array {
   if (deltas.length !== guesses.length) {
     throw new Error(`encodeGuessLogV2: deltas length ${deltas.length} != guesses length ${guesses.length}`);
@@ -119,18 +117,14 @@ export function encodeGuessLogV2(guesses: string[], deltas: number[]): Uint8Arra
 
 export interface DecodedGuesses {
   guesses: string[];
-  /** Per-guess deltaSec. All NaN for v1 logs (no delta info). */
   deltasSec: number[];
   version: 1 | 2;
 }
 
-/** Decode handles both v1 (5 bytes/guess) and v2 (6 bytes/guess).
- *  Backwards-compat shim returning just the guesses (old API). */
 export function decodeGuessLog(buf: Uint8Array): string[] {
   return decodeGuessLogFull(buf).guesses;
 }
 
-/** Full decode returning version + per-guess delta info. */
 export function decodeGuessLogFull(buf: Uint8Array): DecodedGuesses {
   const okV1 = buf.length % V1_BYTES_PER_GUESS === 0;
   const okV2 = buf.length % V2_BYTES_PER_GUESS === 0;

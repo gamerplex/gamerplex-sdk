@@ -1,24 +1,9 @@
-// Blockwords replay validator.
-//
-// What this proves:
-//   1. The submitted seed deterministically resolves to a real WORDS[] entry.
-//   2. Every guess in the move_log is a legal 5-letter encoding.
-//   3. Player's "solved" claim matches: if last guess == answer => solved true.
-//      Otherwise solved false (with guesses=6 or out-of-time).
-//   4. The claimed score == computeScore(solved, guesses, secondsUsed).
-//   5. Duration fits the 90s run cap (with small grace for clock skew).
-//
-// What this does NOT prove (intentional):
-//   - That the player's typing speed is humanly plausible (anti-bot is a
-//     separate layer — focus is anti-cheat, not anti-automation).
-//   - Whether the guesses use only the on-screen keyboard (we don't care).
-
 import { answerForSeed, computeScore, decodeGuessLogFull, isWinningGuess, MAX_GUESSES, RUN_DURATION_SEC, WORD_LENGTH } from "./engine";
 import type { ReplayInput, Validator, Verdict } from "../types";
 import { verdictFail, verdictOk } from "../types";
 
-const DURATION_GRACE_SEC = 5; // clock skew between client and chain block-time
-const MIN_GUESS_DELTA_SEC = 1; // humans need ≥1s to type a 5-letter word
+const DURATION_GRACE_SEC = 5;
+const MIN_GUESS_DELTA_SEC = 1;
 const DURATION_DEVIATION_TOL_SEC = 10;
 
 function median(xs: number[]): number {

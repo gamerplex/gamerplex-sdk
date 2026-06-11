@@ -1,21 +1,3 @@
-// Magic Chess replay validator.
-//
-// Uses chess.js to step through every move and confirm it was a LEGAL chess
-// move in the current position. At end, validates the claimed outcome
-// matches the final position.
-//
-// Score recompute requires knowing the bot ELO + timer used. Those come
-// from the `variant` field, encoded as "<botId>|<moveTimeSec>" by the client
-// (e.g. "zero|5"). If variant is unparseable, validator falls back to
-// UPPER-BOUND check (claimed score must be ≤ max possible across all bots
-// and timers) — weaker but catches blatant lies.
-//
-// Statistical timing analysis (only when move log is v2 / delta-encoded):
-//   - reject if any per-move delta < 200ms (sub-human reaction)
-//   - reject if all deltas identical (uniform = bot)
-//   - reject if median delta < 500ms (unrealistic for blitz chess)
-//   - reject if sum(deltas) deviates from claimed duration by >10s
-
 import { Chess } from "chess.js";
 import { decodeMoveLog, idxToAlg, promotionCodeToSAN, type DecodedMove } from "./decoder";
 import { computeScore, TIMER_PRESETS } from "./score";
