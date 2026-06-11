@@ -7,6 +7,8 @@ export interface ReplayInput {
   durationSec: number;
   variant: string;
   meta: string;
+  continuesUsed: number;
+  powerupsUsed: number;
 }
 
 export interface Verdict {
