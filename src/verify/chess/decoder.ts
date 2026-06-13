@@ -26,21 +26,12 @@ function looksValidV2(bytes: Uint8Array): boolean {
 }
 
 export function decodeMoveLog(bytes: Uint8Array): { moves: DecodedMove[]; version: 1 | 2 } {
-  // Prefer v2 if it's a valid divisor — v2 is the forward standard.
-  if (looksValidV2(bytes) && bytes.length % 4 !== 0) {
-    return { moves: decodeV2(bytes), version: 2 };
+  // Audit P1-9: v1 logs contain no delta data and bypass statisticalTimingCheck.
+  // Legitimate clients only emit v2 — reject v1 entirely.
+  if (!looksValidV2(bytes)) {
+    throw new Error(`move log length ${bytes.length} not v2 (mod 5); v1 logs are rejected post-launch`);
   }
-  // Both v1 and v2 valid (multiples of both 4 and 5, e.g. 20 bytes)?
-  // Ambiguous — choose v1 for safety (no false-positive delta data).
-  if (looksValidV1(bytes)) {
-    return { moves: decodeV1(bytes), version: 1 };
-  }
-  if (looksValidV2(bytes)) {
-    return { moves: decodeV2(bytes), version: 2 };
-  }
-  throw new Error(
-    `move log length ${bytes.length} doesn't match v1 (mod 4) or v2 (mod 5)`
-  );
+  return { moves: decodeV2(bytes), version: 2 };
 }
 
 function decodeV1(bytes: Uint8Array): DecodedMove[] {

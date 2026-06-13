@@ -196,16 +196,34 @@ export class ArcadeClient {
     const composedMeta = userMeta
       ? `sdk=${SDK_VERSION};${userMeta}`
       : `sdk=${SDK_VERSION}`;
+
+    // Audit P1-8: auto-compute moveHash from moveLog when present. Previously
+    // defaulting to a 32-byte zero hash silently broke replay verification —
+    // resolver hash compare always failed, all saves permanently unverified.
+    let resolvedMoveHash: Uint8Array;
+    if (input.moveHash) {
+      resolvedMoveHash = input.moveHash;
+    } else if (input.moveLog && input.moveLog.length > 0) {
+      const crypto = await import("crypto");
+      resolvedMoveHash = new Uint8Array(crypto.createHash("sha256").update(input.moveLog).digest());
+    } else {
+      resolvedMoveHash = new Uint8Array(32);
+      console.warn("[ArcadeClient.saveScore] Submitting with ZERO moveHash — no moveLog provided. Replay verification will be impossible.");
+    }
+
     tx.add(await this.buildSubmitScoreIx({
       player,
       gameId: input.gameId,
       score: input.score,
-      variant: input.variant ?? "v1",
+      // Audit P1-7: require explicit variant in <botId>|<turnTime> format for
+      // chess; using "v1" silently bypassed score-equality check. Empty string
+      // is safer for non-chess games; chess client must pass real variant.
+      variant: input.variant ?? "",
       continuesUsed: input.continuesUsed ?? 0,
       powerupsUsed: input.powerupsUsed ?? 0,
       sessionSeed: input.sessionSeed,
       durationSec: input.durationSec ?? 0,
-      moveHash: input.moveHash ?? new Uint8Array(32),
+      moveHash: resolvedMoveHash,
       meta: composedMeta,
     }));
 

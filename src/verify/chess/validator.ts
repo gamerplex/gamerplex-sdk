@@ -128,11 +128,10 @@ export const chessValidator: Validator = {
     } else if (chess.isStalemate() || chess.isInsufficientMaterial() || chess.isThreefoldRepetition() || chess.isDraw()) {
       won = null; // draw
     } else {
-      // Game not actually terminated by the move log — could be a resignation
-      // OR an incomplete log. We can't tell from chain data alone, so we treat
-      // this as a draw for scoring purposes (gives the lowest defensible score).
-      // Honest framing: the on-chain GPX5 doesn't currently encode "I resigned".
-      won = null;
+      // Audit P1-7: incomplete games (no terminal checkmate/stalemate in log)
+      // are NOT wins. Previously this returned won=null which scored as draw
+      // (250 points) — that's a free 250 per quit. Treat as loss (0 points).
+      won = false;
     }
 
     // 4. Recompute score
@@ -141,8 +140,17 @@ export const chessValidator: Validator = {
     const turnTime = variant.turnTimeSec ?? DEFAULT_TURN_TIME;
     const computed = computeScore(botElo, won, moves.length, input.durationSec, turnTime);
 
-    // If variant didn't tell us the bot, fall back to UPPER-BOUND check.
+    // Audit P1-7: if variant didn't parse, require an ACTUAL winning game
+    // (checkmate confirmed by chess.js, won=true) AND upper-bound the score.
+    // Previously this allowed unwinning games to score up to 7490 via just
+    // an upper-bound check.
     if (variant.botElo == null || variant.turnTimeSec == null) {
+      if (won !== true) {
+        return verdictFail(
+          input.claimedScore,
+          `variant unparseable AND game not won (won=${won}); cannot accept claimed_score ${input.claimedScore}`,
+        );
+      }
       const maxPossible = computeScore(MAX_BOT_ELO, true, 1, 1, 3);
       if (input.claimedScore > maxPossible) {
         return verdictFail(
@@ -150,8 +158,6 @@ export const chessValidator: Validator = {
           `variant unparseable; claimed_score ${input.claimedScore} exceeds upper bound ${maxPossible}`,
         );
       }
-      // Skip exact-match score check when variant is missing — accept the
-      // game-level legality validation as sufficient.
     } else if (computed !== input.claimedScore) {
       return {
         ...verdictFail(

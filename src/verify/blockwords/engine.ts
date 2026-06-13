@@ -126,13 +126,13 @@ export function decodeGuessLog(buf: Uint8Array): string[] {
 }
 
 export function decodeGuessLogFull(buf: Uint8Array): DecodedGuesses {
-  const okV1 = buf.length % V1_BYTES_PER_GUESS === 0;
+  // Audit P1-9: v1 logs contain no delta data and bypass statisticalTimingCheck.
+  // Legitimate clients only emit v2 — reject v1 entirely.
   const okV2 = buf.length % V2_BYTES_PER_GUESS === 0;
-  // Prefer v2 when it's the unique fit (mod 6 but not mod 5).
-  if (okV2 && !okV1) return decodeV2(buf);
-  if (okV1) return decodeV1(buf);
-  if (okV2) return decodeV2(buf);
-  throw new Error(`guess log length ${buf.length} doesn't match v1 (mod 5) or v2 (mod 6)`);
+  if (!okV2) {
+    throw new Error(`guess log length ${buf.length} not v2 (mod ${V2_BYTES_PER_GUESS}); v1 logs are rejected post-launch`);
+  }
+  return decodeV2(buf);
 }
 
 function decodeV1(buf: Uint8Array): DecodedGuesses {
