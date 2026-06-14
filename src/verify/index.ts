@@ -14,7 +14,7 @@ const VALIDATORS: Record<string, Validator | undefined> = {
   "magic-chess": chessValidator,
   "cyber-snake": snakeValidator,
   flipball: flipballValidator,
-  "pet-legends-arena": petLegendsArenaValidator,
+  "pet-legends": petLegendsArenaValidator,
 };
 
 export async function verifyReplay(input: ReplayInput): Promise<Verdict> {
