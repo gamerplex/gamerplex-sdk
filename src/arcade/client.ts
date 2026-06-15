@@ -87,6 +87,9 @@ export interface SaveScoreInput {
   moveLog?: Uint8Array;
   /** Override resolver base URL. Set to "" to disable auto submit-replay. */
   resolverUrl?: string;
+  /** Session PDA from openSession(). REQUIRED when variant starts with
+   *  "daily" or "challenge" (P0-3 grind defense). Ignored otherwise. */
+  sessionPda?: PublicKey;
 }
 
 import { submitReplay, type SubmitReplayResult } from "./replay";
@@ -224,6 +227,7 @@ export class ArcadeClient {
       sessionSeed: input.sessionSeed,
       durationSec: input.durationSec ?? 0,
       moveHash: resolvedMoveHash,
+      session: input.sessionPda,
       meta: composedMeta,
     }));
 
@@ -329,6 +333,8 @@ export class ArcadeClient {
     moveHash: Uint8Array;
     meta: string;
     vsChallenger?: PublicKey;
+    /** Session PDA — required when variant starts with "daily" or "challenge". */
+    session?: PublicKey;
   }): Promise<TransactionInstruction> {
     return (this.program.methods as any)
       .submitScore(
@@ -342,13 +348,15 @@ export class ArcadeClient {
         args.meta,
         args.vsChallenger ?? PublicKey.default,
       )
-      .accounts({
+      .accountsPartial({
         config: configPda(this.programId),
         game: gamePda(args.gameId, this.programId),
         profile: profilePda(args.player, this.programId),
         wallet: args.player,
         player: args.player,
         memoProgram: SPL_MEMO_ID,
+        instructionsSysvar: SYSVAR_INSTRUCTIONS_PUBKEY,
+        session: args.session ?? null,
       })
       .instruction();
   }

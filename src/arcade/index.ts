@@ -55,4 +55,7 @@ export { sha256 } from "./util";
 export { submitReplay, submitReplayFireAndForget } from "./replay";
 export type { SubmitReplayResult } from "./replay";
 
+export { openSession } from "./session";
+export type { OpenSessionInput, OpenSessionResult } from "./session";
+
 export { SDK_VERSION } from "../version";
