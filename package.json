@@ -1,6 +1,6 @@
 {
   "name": "@gamerplex/sdk",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "description": "Solana on-chain primitives for the Gamerplex Arcade: save-scores with multi-token payment + $GAME 20% discount + affiliate referrals + replay verification.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -23,6 +23,12 @@
       "require": "./dist/verify/index.js",
       "default": "./dist/verify/index.js"
     },
+    "./save": {
+      "types": "./dist/save/index.d.ts",
+      "import": "./dist/save/index.js",
+      "require": "./dist/save/index.js",
+      "default": "./dist/save/index.js"
+    },
     "./idl/gamerplex_arcade.json": "./idl/gamerplex_arcade.json"
   },
   "files": [
@@ -35,7 +41,8 @@
     "clean": "rm -rf dist",
     "sync-idl": "cp ../gamerplex-arcade/target/idl/gamerplex_arcade.json idl/ && echo 'IDL synced from gamerplex-arcade'",
     "prepare": "tsc",
-    "prepublishOnly": "npm run clean && npm run build"
+    "prepublishOnly": "npm run clean && npm run build",
+    "test": "vitest run"
   },
   "keywords": [
     "solana",
@@ -54,7 +61,8 @@
     "chess.js": "^1.4.0"
   },
   "devDependencies": {
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.9"
   },
   "peerDependencies": {
     "@coral-xyz/anchor": ">=0.30.0",
